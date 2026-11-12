@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MY SYNK : ROOM</title>
+  <style>
+    :root {
+      --bg-cream: #dfd7cc;
+      --bg-card: #f2ece4;
+      --text-main: #322a28;
+      --text-sub: #635957;
+      --accent-purple: #9333ea;
+      --accent-pink: #db2777;
+      --border-color: #c9beb0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      background-color: var(--bg-cream); color: var(--text-main); user-select: none;
+    }
+
+    /* ================= LANDING PAGE ================= */
+    #landing-page {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #ebe3d8 0%, #d4c8b8 100%);
+      z-index: 9999; display: flex; flex-direction: column; justify-content: space-between;
+      padding: 30px 60px; transition: opacity 0.4s ease;
+    }
+    #landing-page.hidden {
+      display: none !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .nav-bar { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.6rem; font-weight: 800; color: var(--accent-purple); letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 30px; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.95rem; }
+
+    .hero-section { display: flex; align-items: center; justify-content: space-between; flex: 1; margin: 40px 0; }
+    .hero-text { max-width: 550px; }
+    .hero-text h2 { font-size: 3rem; line-height: 1.25; font-weight: 800; color: #261f1d; margin-bottom: 20px; }
+    .hero-text h2 span { color: var(--accent-purple); }
+    .hero-text p { font-size: 1.1rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 35px; }
+    
+    .btn-start {
+      background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+      color: #fff; border: none; padding: 16px 36px; border-radius: 30px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 25px rgba(147, 51, 234, 0.3);
+      transition: all 0.2s ease; position: relative; z-index: 10000;
+    }
+    .btn-start:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(147, 51, 234, 0.4); }
+    .btn-start:active { transform: scale(0.97); }
+
+    .hero-preview-box {
+      width: 420px; height: 300px; background: var(--bg-card); border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 2px solid var(--border-color);
+      display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px;
+    }
+
+    /* ================= GAME CANVAS & CURSOR ================= */
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 0; }
+    body.space-pressed #canvas-container { cursor: grab !important; }
+    body.space-pressed.panning #canvas-container { cursor: grabbing !important; }
+    body.dragging-goods #canvas-container { cursor: move !important; }
+
+    /* ================= UI OVERLAY ================= */
+    #ui-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; z-index: 10;
+    }
+    .interactive { pointer-events: auto; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(242, 236, 228, 0.92); backdrop-filter: blur(12px); padding: 14px 24px; border-radius: 18px;
+      border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    header h1 { font-size: 1.3rem; font-weight: 800; color: var(--accent-purple); }
+
+    .guide-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .space-guide-badge {
+      font-size: 0.78rem; background: rgba(147, 51, 234, 0.12); color: var(--accent-purple);
+      padding: 6px 12px; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    .btn-group { display: flex; gap: 10px; }
+    button.game-btn {
+      background: var(--accent-purple); color: #fff; border: none; padding: 10px 18px; border-radius: 12px;
+      font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: 0.2s ease;
+      box-shadow: 0 4px 12px rgba(147, 51, 234, 0.25);
+    }
+    button.game-btn:hover { background: #7e22ce; transform: translateY(-2px); }
+    button.game-btn.secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: none; }
+    button.game-btn.secondary:hover { background: #e5ddd2; }
+
+    /* 선택된 굿즈 위치 미세 조정 플로팅 바 */
+    #selected-toolbar {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: rgba(242, 236, 228, 0.95); backdrop-filter: blur(12px);
+      border: 1px solid var(--accent-purple); border-radius: 16px; padding: 12px 20px;
+      display: none; align-items: center; gap: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.14);
+    }
+    #selected-toolbar.active { display: flex; }
+    .move-btn-grid { display: flex; gap: 6px; }
+    .move-btn {
+      background: #e6ded3; border: 1px solid var(--border-color); color: var(--text-main);
+      width: 32px; height: 32px; border-radius: 8px; font-weight: 800; cursor: pointer;
+    }
+    .move-btn:hover { background: var(--accent-purple); color: #fff; }
+
+    /* Modal */
+    .modal {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--bg-card); width: 460px; padding: 28px; border-radius: 20px;
+      border: 1px solid var(--border-color); display: none; flex-direction: column; gap: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.15); z-index: 50;
+    }
+    .modal.active { display: flex; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+    .modal h2 { font-size: 1.25rem; color: var(--accent-purple); font-weight: 700; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-sub); }
+    .form-group input, .form-group select {
+      background: #e6ded3; border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 10px; outline: none; font-size: 0.9rem;
+    }
+
+    /* Collection Drawer */
+    #collection-drawer {
+      position: absolute; right: -480px; top: 0; width: 460px; height: 100%;
+      background: rgba(242, 236, 228, 0.97); backdrop-filter: blur(15px);
+      border-left: 1px solid var(--border-color); padding: 24px;
+      transition: right 0.3s ease; overflow-y: auto; z-index: 40;
+    }
+    #collection-drawer.active { right: 0; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .btn-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-sub); padding: 4px; }
+
+    .filter-tab-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-btn {
+      background: #dad0c2; border: 1px solid var(--border-color); color: var(--text-main);
+      padding: 6px 11px; border-radius: 16px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .filter-btn.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); }
+
+    .artist-group-header {
+      background: #ddd3c5; padding: 8px 14px; border-radius: 10px; font-weight: 800; font-size: 0.88rem;
+      color: var(--accent-purple); margin: 14px 0 8px 0; display: flex; justify-content: space-between;
+    }
+
+    .item-card {
+      background: #e6ded3; padding: 12px 14px; border-radius: 14px; margin-bottom: 10px;
+      border: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center;
+    }
+    .item-card-thumb { width: 50px; height: 50px; border-radius: 8px; background: #fff; object-fit: contain; flex-shrink: 0; }
+    .item-card-info { flex: 1; }
+    .btn-edit-small { background: #dad0c2; border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. LANDING PAGE -->
+  <div id="landing-page">
+    <nav class="nav-bar">
+      <div class="logo">MY SYNK : ROOM</div>
+      <ul class="nav-links">
+        <li><a href="#home">HOME</a></li>
+        <li><a href="#features">FEATURES</a></li>
+        <li><a href="#howtoplay">HOW TO PLAY</a></li>
+        <li><a href="#leaderboard">LEADERBOARD</a></li>
+      </ul>
+    </nav>
+
+    <div class="hero-section">
+      <div class="hero-text">
+        <h2>문을 열고 들어가는<br><span>나만의 K-POP 아지트</span></h2>
+        <p>실제 구매한 앨범, 키링, 인형 투명 PNG를 올려 방을 꾸며보세요.<br>등록한 굿즈를 클릭해 선반과 책상 위 원하는 위치로 자유롭게 이동할 수 있습니다.</p>
+        <button type="button" id="btn-start-play" class="btn-start">START PLAY ➔</button>
+      </div>
+      <div class="hero-preview-box">
+        <div style="font-size: 3rem; margin-bottom: 10px;">🏡✨💿</div>
+        <h3 style="font-size: 1.2rem; color: var(--accent-purple); margin-bottom: 8px;">아늑한 주택형 3D 컬렉션 룸</h3>
+        <p style="font-size: 0.9rem; color: var(--text-sub);">문 열림·닫힘 입장 연출 · 아티스트별 도감 · 드래그 위치 조정</p>
+      </div>
+    </div>
+
+    <footer style="font-size: 0.85rem; color: var(--text-sub); border-top: 1px solid var(--border-color); padding-top: 15px;">
+      © 2026 MY SYNK : ROOM. All rights reserved.
+    </footer>
+  </div>
+
+  <!-- 2. CANVAS -->
+  <div id="canvas-container"></div>
+
+  <!-- 3. UI OVERLAY -->
+  <div id="ui-container">
+    <header class="interactive">
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <h1>MY SYNK : ROOM</h1>
+        <div class="guide-badges">
+          <span class="space-guide-badge">🖱️ 빈 공간 드래그: 360° 시점 회전</span>
+          <span class="space-guide-badge">📦 굿즈 드래그: 위치 이동</span>
+          <span class="space-guide-badge">⌨️ Spacebar + 드래그: 화면 이동</span>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="game-btn" id="btn-open-register">📸 굿즈 SYNK (등록)</button>
+        <button type="button" class="game-btn secondary" id="btn-open-drawer">📚 컬렉션 도감</button>
+      </div>
+    </header>
+
+    <!-- 선택된 굿즈 위치 미세 조정 플로팅 바 -->
+    <div id="selected-toolbar" class="interactive">
+      <span id="selected-item-label" style="font-weight: 800; font-size: 0.88rem; color: var(--accent-purple);">선택됨: 굿즈</span>
+      <div class="move-btn-grid">
+        <button type="button" class="move-btn" title="왼쪽 이동" onclick="nudgeSelected(-0.12, 0, 0)">◀</button>
+        <button type="button" class="move-btn" title="오른쪽 이동" onclick="nudgeSelected(0.12, 0, 0)">▶</button>
+        <button type="button" class="move-btn" title="앞/위 이동" onclick="nudgeSelected(0, 0, 0.12)">▼</button>
+        <button type="button" class="move-btn" title="뒤/아래 이동" onclick="nudgeSelected(0, 0, -0.12)">▲</button>
+        <button type="button" class="move-btn" title="높이 올리기" onclick="nudgeSelected(0, 0.1, 0)">↑</button>
+        <button type="button" class="move-btn" title="높이 내리기" onclick="nudgeSelected(0, -0.1, 0)">↓</button>
+      </div>
+      <button type="button" class="btn-edit-small" onclick="deselectGoods()">선택 해제</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="sync-modal" class="modal interactive">
+      <div class="modal-header">
+        <h2 id="modal-title">실물 굿즈 AI SYNK</h2>
+        <button type="button" class="btn-close" onclick="toggleModal('sync-modal')">✕</button>
+      </div>
+      
+      <input type="hidden" id="edit-item-id" value="" />
+
+      <div class="form-group">
+        <label>아티스트명</label>
+        <input type="text" id="artist-name" placeholder="예: aespa" />
+      </div>
+      <div class="form-group">
+        <label>굿즈 카테고리</label>
+        <select id="item-category" onchange="updateFormSubTypes()">
+          <option value="album">앨범 (선반/책장 진열)</option>
+          <option value="poster">포스터 (벽 부착)</option>
+          <option value="figure">인형/키링 (책상/테이블 배치)</option>
+          <option value="photocard">포토카드 (침대/책상 배치)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="group-goods-type">
+        <label>굿즈 패키지 형태</label>
+        <select id="item-shape-type">
+          <option value="png_cutout">PNG 컷아웃 (실물 외형 그대로)</option>
+          <option value="standard">기존 사각 3D 케이스/CD 앨범</option>
+          <option value="keyring">키링/고리형 미니 앨범</option>
+          <option value="necklace">목걸이/NFC 펜던트 앨범</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>아이템 이름</label>
+        <input type="text" id="item-name" placeholder="예: Armageddon 앨범" />
+      </div>
+
+      <div class="form-group">
+        <label>실물 PNG 이미지 (투명 배경 권장)</label>
+        <input type="file" id="item-image-file" accept="image/*" />
+      </div>
+
+      <div class="btn-group" style="justify-content: flex-end; margin-top: 10px;">
+        <button type="button" class="game-btn secondary" onclick="toggleModal('sync-modal')">취소</button>
+        <button type="button" class="game-btn" id="btn-save-goods" onclick="saveGoods()">AI 분석 & 방에 반영</button>
+      </div>
+    </div>
+
+    <!-- Collection Drawer -->
+    <div id="collection-drawer" class="interactive">
+      <div class="drawer-header">
+        <h2 style="color: var(--accent-purple); font-size: 1.2rem;">나만의 SYNK 도감</h2>
+        <button type="button" class="btn-close" onclick="toggleDrawer(false)">✕</button>
+      </div>
+
+      <div class="filter-tab-group" id="filter-tabs">
+        <button type="button" class="filter-btn active" data-cat="all" onclick="setFilter('all', this)">전체 (0)</button>
+        <button type="button" class="filter-btn" data-cat="artist" onclick="setFilter('artist', this)">🎤 아티스트 (0)</button>
+        <button type="button" class="filter-btn" data-cat="album" onclick="setFilter('album', this)">💿 앨범 (0)</button>
+        <button type="button" class="filter-btn" data-cat="poster" onclick="setFilter('poster', this)">🖼️ 포스터 (0)</button>
+        <button type="button" class="filter-btn" data-cat="figure" onclick="setFilter('figure', this)">🧸 인형·키링 (0)</button>
+        <button type="button" class="filter-btn" data-cat="photocard" onclick="setFilter('photocard', this)">🃏 포토카드 (0)</button>
+      </div>
+
+      <div id="collection-list">
+        <p style="color: var(--text-sub); font-size: 0.9rem;">등록된 굿즈가 없습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1단계: UI 버튼 이벤트 최우선 독립 바인딩 -->
+  <script>
+    window.entryPhase = 'idle'; // 'idle' -> 'opening' -> 'entering' -> 'closing' -> 'done'
+
+    window.startGame = function() {
+      const page = document.getElementById('landing-page');
+      if (page) {
+        page.classList.add('hidden');
+        page.style.display = 'none';
+      }
+      window.entryPhase = 'opening';
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const startBtn = document.getElementById('btn-start-play');
+      if (startBtn) {
+        startBtn.addEventListener('click', window.startGame);
+      }
+      const regBtn = document.getElementById('btn-open-register');
+      if (regBtn) {
+        regBtn.addEventListener('click', () => {
+          if (typeof window.openRegisterModal === 'function') window.openRegisterModal();
+        });
+      }
+      const drawerBtn = document.getElementById('btn-open-drawer');
+      if (drawerBtn) {
+        drawerBtn.addEventListener('click', () => window.toggleDrawer(true));
+      }
+    });
+
+    window.toggleModal = function(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.toggle('active');
+    };
+
+    window.toggleDrawer = function(show) {
+      const drawer = document.getElementById('collection-drawer');
+      if (!drawer) return;
+      if (show !== undefined) {
+        show ? drawer.classList.add('active') : drawer.classList.remove('active');
+      } else {
+        drawer.classList.toggle('active');
+      }
+    };
+
+    window.updateFormSubTypes = function() {
+      const catEl = document.getElementById('item-category');
+      const shapeSelect = document.getElementById('item-shape-type');
+      if (!catEl || !shapeSelect) return;
+      
+      const cat = catEl.value;
+      if (cat === 'album') {
+        shapeSelect.innerHTML = `
+          <option value="png_cutout">PNG 컷아웃 (실물 외형 그대로)</option>
+          <option value="standard">기존 사각 3D 케이스/CD 앨범</option>
+          <option value="keyring">키링/고리형 미니 앨범</option>
+          <option value="necklace">목걸이/NFC 펜던트 앨범</option>
+        `;
+      } else if (cat === 'figure') {
+        shapeSelect.innerHTML = `
+          <option value="png_cutout">PNG 컷아웃 (실물 인형/키링 모양)</option>
+          <option value="keyring">키링 고리 포함 형태</option>
+        `;
+      } else {
+        shapeSelect.innerHTML = `<option value="png_cutout">PNG 컷아웃 (기본)</option>`;
+      }
+    };
+  </script>
+
+  <!-- 2단계: Three.js 3D 엔진 로드 및 실행 -->
+  <script>
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    window.addEventListener('load', () => {
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
+        .then(() => loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'))
+        .then(() => initThreeApp())
+        .catch(err => console.error("Three.js 로드 오류:", err));
+    });
+
+    function initThreeApp() {
+      const container = document.getElementById('canvas-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      const scene = new THREE.Scene();
+      // 톤다운된 차분한 웜 베이지 배경
+      scene.background = new THREE.Color(0xdad1c5);
+
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+      // 1) 시작 카메라: 집 바깥쪽 현관 문 정면
+      camera.position.set(6.5, 1.75, 1.6);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.8;
+      controls.zoomSpeed = 0.9;
+      controls.minDistance = 0.5;
+      controls.maxDistance = 12;
+      controls.maxPolarAngle = Math.PI / 2 - 0.03;
+      controls.target.set(2.96, 1.5, 1.6);
+      controls.update();
+
+      // Spacebar Pan
+      let isSpacePressed = false;
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !isSpacePressed && document.activeElement.tagName !== 'INPUT') {
+          isSpacePressed = true;
+          document.body.classList.add('space-pressed');
+          controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+          isSpacePressed = false;
+          document.body.classList.remove('space-pressed', 'panning');
+          controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+        }
+      });
+
+      // ================= 조명 (흰색 굿즈 시인성을 위해 과도한 밝기 톤다운) =================
+      scene.add(new THREE.AmbientLight(0xf5eadb, 0.62));
+      const dirLight = new THREE.DirectionalLight(0xffe4c4, 0.48);
+      dirLight.position.set(2, 8, 2);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      const roomLight = new THREE.PointLight(0xffeed6, 0.38, 12);
+      roomLight.position.set(0, 3.4, 0);
+      scene.add(roomLight);
+
+      // ================= 4면 실내 방 구조 & 지붕/천장 =================
+      const roomSize = 6;
+      const wallHeight = 4.2;
+
+      // 바닥 (톤다운된 월넛 우드 마루)
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(roomSize, roomSize),
+        new THREE.MeshStandardMaterial({ color: 0xb8a58e })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // 집 바깥쪽 현관 발판
+      const porchMat = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, 3.2),
+        new THREE.MeshStandardMaterial({ color: 0xb5a693 })
+      );
+      porchMat.rotation.x = -Math.PI / 2;
+      porchMat.position.set(4.3, 0.002, 1.6);
+      scene.add(porchMat);
+
+      const welcomeMat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.9, 0.02, 1.3),
+        new THREE.MeshStandardMaterial({ color: 0x6b5642 })
+      );
+      welcomeMat.position.set(3.6, 0.01, 1.6);
+      scene.add(welcomeMat);
+
+      // 톤다운된 벽지 재질 (흰색 굿즈와 대비되도록 차분한 그레이지 톤 적용)
+      const wallMatBack = new THREE.MeshStandardMaterial({ color: 0xc5b8a5, side: THREE.DoubleSide });
+      const wallMatLeft = new THREE.MeshStandardMaterial({ color: 0xbfb19d, side: THREE.DoubleSide });
+      const wallMatFront = new THREE.MeshStandardMaterial({ color: 0xc5b8a5, transparent: true, opacity: 1, side: THREE.DoubleSide });
+      const wallMatRight = new THREE.MeshStandardMaterial({ color: 0xbfb19d, transparent: true, opacity: 1, side: THREE.DoubleSide });
+
+      // 1) 뒷벽 (Z = -3)
+      const wallBack = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMatBack);
+      wallBack.position.set(0, wallHeight / 2, -3);
+      scene.add(wallBack);
+
+      // 2) 왼쪽 벽 (X = -3) + 창문
+      const wallLeft = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMatLeft);
+      wallLeft.position.set(-3, wallHeight / 2, 0);
+      wallLeft.rotation.y = Math.PI / 2;
+      scene.add(wallLeft);
+
+      const windowGroup = new THREE.Group();
+      const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.6, 1.8), new THREE.MeshStandardMaterial({ color: 0xe6dfd5 }));
+      const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, 1.6), new THREE.MeshStandardMaterial({ color: 0xbcd4eb, emissive: 0x93c5fd, emissiveIntensity: 0.25 }));
+      const winCrossV = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.45, 0.06), new THREE.MeshStandardMaterial({ color: 0xe6dfd5 }));
+      const winCrossH = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 1.65), new THREE.MeshStandardMaterial({ color: 0xe6dfd5 }));
+      windowGroup.add(winFrame, winGlass, winCrossV, winCrossH);
+      windowGroup.position.set(-2.96, 2.4, 0.6);
+      scene.add(windowGroup);
+
+      // 3) 오른쪽 벽 (X = +3) - 문 개구부 포함
+      const rightWallLeftPart = new THREE.Mesh(new THREE.PlaneGeometry(4.0, wallHeight), wallMatRight);
+      rightWallLeftPart.position.set(3, wallHeight / 2, -1.0);
+      rightWallLeftPart.rotation.y = -Math.PI / 2;
+      scene.add(rightWallLeftPart);
+
+      const rightWallRightPart = new THREE.Mesh(new THREE.PlaneGeometry(0.8, wallHeight), wallMatRight);
+      rightWallRightPart.position.set(3, wallHeight / 2, 2.6);
+      rightWallRightPart.rotation.y = -Math.PI / 2;
+      scene.add(rightWallRightPart);
+
+      const rightWallTopPart = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.55), wallMatRight);
+      rightWallTopPart.position.set(3, 2.65 + 1.55 / 2, 1.6);
+      rightWallTopPart.rotation.y = -Math.PI / 2;
+      scene.add(rightWallTopPart);
+
+      // 문틀 몰딩
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x6b5642 });
+      const framePostL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.68, 0.08), frameMat);
+      framePostL.position.set(3, 1.34, 0.98);
+      const framePostR = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.68, 0.08), frameMat);
+      framePostR.position.set(3, 1.34, 2.22);
+      const frameHeader = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 1.32), frameMat);
+      frameHeader.position.set(3, 2.68, 1.6);
+      scene.add(framePostL, framePostR, frameHeader);
+
+      // 여닫이 방문
+      const doorPivot = new THREE.Group();
+      doorPivot.position.set(2.96, 0, 2.2);
+      const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.62, 1.18), new THREE.MeshStandardMaterial({ color: 0xe3dad0 }));
+      doorLeaf.position.set(0, 1.31, -0.59);
+      const doorPanelTop = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.78), new THREE.MeshStandardMaterial({ color: 0xd4c9bc }));
+      doorPanelTop.position.set(0, 1.85, -0.59);
+      const doorPanelBot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.78), new THREE.MeshStandardMaterial({ color: 0xd4c9bc }));
+      doorPanelBot.position.set(0, 0.75, -0.59);
+      const doorKnobOut = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 16), new THREE.MeshStandardMaterial({ color: 0xc49a2c, metalness: 0.8 }));
+      doorKnobOut.position.set(0.07, 1.25, -1.03);
+      const doorKnobIn = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 16), new THREE.MeshStandardMaterial({ color: 0xc49a2c, metalness: 0.8 }));
+      doorKnobIn.position.set(-0.07, 1.25, -1.03);
+      doorPivot.add(doorLeaf, doorPanelTop, doorPanelBot, doorKnobOut, doorKnobIn);
+      scene.add(doorPivot);
+
+      // 4) 앞쪽 벽 (Z = +3)
+      const wallFront = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMatFront);
+      wallFront.position.set(0, wallHeight / 2, 3);
+      wallFront.rotation.y = Math.PI;
+      scene.add(wallFront);
+
+      // 5) 실내 천장 + 주택 박공 지붕 (Roof)
+      const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xd2c7b8, transparent: true, opacity: 1, side: THREE.DoubleSide });
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), ceilingMat);
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.set(0, wallHeight, 0);
+      scene.add(ceiling);
+
+      // 천장 중앙 실링 조명등
+      const ceilingLampMat = new THREE.MeshStandardMaterial({ color: 0xf5ebd6, emissive: 0xfde68a, emissiveIntensity: 0.35, transparent: true, opacity: 1 });
+      const ceilingLamp = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.08, 24), ceilingLampMat);
+      ceilingLamp.position.set(0, wallHeight - 0.04, 0);
+      scene.add(ceilingLamp);
+
+      // 박공 지붕 (집 외부에서 보일 때 진짜 집 느낌 연출)
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0x7d5a44, transparent: true, opacity: 1, side: THREE.DoubleSide });
+      const gableMat = new THREE.MeshStandardMaterial({ color: 0xc5b8a5, transparent: true, opacity: 1, side: THREE.DoubleSide });
+
+      const roofGroup = new THREE.Group();
+      const roofSlopeWidth = 4.6;
+      const roofLength = 6.6;
+      const roofAngle = Math.PI / 6; // 30도 경사
+
+      // 왼쪽 지붕 경사면
+      const roofLeft = new THREE.Mesh(new THREE.BoxGeometry(roofSlopeWidth, 0.14, roofLength), roofMat);
+      roofLeft.position.set(-1.65, wallHeight + 0.85, 0);
+      roofLeft.rotation.z = roofAngle;
+
+      // 오른쪽 지붕 경사면
+      const roofRight = new THREE.Mesh(new THREE.BoxGeometry(roofSlopeWidth, 0.14, roofLength), roofMat);
+      roofRight.position.set(1.65, wallHeight + 0.85, 0);
+      roofRight.rotation.z = -roofAngle;
+
+      // 용마루 (지붕 꼭대기 마감)
+      const roofRidge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.18, roofLength + 0.05), roofMat);
+      roofRidge.position.set(0, wallHeight + 1.82, 0);
+
+      // 앞뒤 박공 삼각형 벽면
+      const gableShape = new THREE.Shape();
+      gableShape.moveTo(-3.0, 0);
+      gableShape.lineTo(3.0, 0);
+      gableShape.lineTo(0, 1.75);
+      gableShape.closePath();
+      const gableGeo = new THREE.ShapeGeometry(gableShape);
+
+      const gableFront = new THREE.Mesh(gableGeo, gableMat);
+      gableFront.position.set(0, wallHeight, 3.0);
+      const gableBack = new THREE.Mesh(gableGeo, gableMat);
+      gableBack.position.set(0, wallHeight, -3.0);
+
+      roofGroup.add(roofLeft, roofRight, roofRidge, gableFront, gableBack);
+      scene.add(roofGroup);
+
+      // ================= 가구 세팅 (전체 색감 톤다운 & 의자 다리 추가) =================
+      const furnitureGroup = new THREE.Group();
+
+      // 원형 러그 (차분한 토프 브라운)
+      const rug = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 0.015, 36), new THREE.MeshStandardMaterial({ color: 0xb09f8a }));
+      rug.position.set(0, 0.008, 0.1);
+      furnitureGroup.add(rug);
+
+      // 침대 & 베개 (톤다운된 린넨 베이지)
+      const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x7d6b58 }));
+      bedFrame.position.set(-1.8, 0.2, -1.6);
+      const bedMattress = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.3, 2.3), new THREE.MeshStandardMaterial({ color: 0xdfd6c9 }));
+      bedMattress.position.set(-1.8, 0.45, -1.6);
+      const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.42), new THREE.MeshStandardMaterial({ color: 0xc9bcab }));
+      pillow.position.set(-1.8, 0.65, -2.4);
+      furnitureGroup.add(bedFrame, bedMattress, pillow);
+
+      // 우드 책상 (딥 월넛)
+      const deskTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 1.2), new THREE.MeshStandardMaterial({ color: 0x5e4a38 }));
+      deskTop.position.set(1.5, 1.0, -2.2);
+      deskTop.castShadow = true;
+      furnitureGroup.add(deskTop);
+
+      const legGeo = new THREE.BoxGeometry(0.1, 1.0, 0.1);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x423326 });
+      [[0.5, 0.5, -2.7], [2.5, 0.5, -2.7], [0.5, 0.5, -1.7], [2.5, 0.5, -1.7]].forEach(pos => {
+        const leg = new THREE.Mesh(legGeo, legMat);
+        leg.position.set(...pos);
+        furnitureGroup.add(leg);
+      });
+
+      // 책상 앞 의자 + 의자 다리 4개 추가
+      const chairWoodMat = new THREE.MeshStandardMaterial({ color: 0x9c8770 });
+      const chairLegMat = new THREE.MeshStandardMaterial({ color: 0x524030 });
+
+      const chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.08, 0.65), chairWoodMat);
+      chairSeat.position.set(1.5, 0.55, -1.2);
+      const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.6, 0.08), chairWoodMat);
+      chairBack.position.set(1.5, 0.85, -0.9);
+      furnitureGroup.add(chairSeat, chairBack);
+
+      // 의자 다리 4개 (바닥 Y=0 부터 좌판 Y=0.55 까지 연결)
+      const chairLegGeo = new THREE.BoxGeometry(0.06, 0.55, 0.06);
+      [
+        [1.5 - 0.27, 0.275, -1.2 - 0.27],
+        [1.5 + 0.27, 0.275, -1.2 - 0.27],
+        [1.5 - 0.27, 0.275, -1.2 + 0.27],
+        [1.5 + 0.27, 0.275, -1.2 + 0.27]
+      ].forEach(pos => {
+        const cLeg = new THREE.Mesh(chairLegGeo, chairLegMat);
+        cLeg.position.set(...pos);
+        cLeg.castShadow = true;
+        furnitureGroup.add(cLeg);
+      });
+
+      // 테이블 미니 스탠드 조명
+      const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.05, 16), new THREE.MeshStandardMaterial({ color: 0x423326 }));
+      lampBase.position.set(2.3, 1.08, -2.5);
+      const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.25, 20), new THREE.MeshStandardMaterial({ color: 0xe8d8b5, emissive: 0xfde68a, emissiveIntensity: 0.3 }));
+      lampShade.position.set(2.3, 1.32, -2.5);
+      furnitureGroup.add(lampBase, lampShade);
+
+      // 플랜테리어 화분
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.4, 20), new THREE.MeshStandardMaterial({ color: 0x8f7760 }));
+      pot.position.set(-2.5, 0.2, 2.4);
+      const plant = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32), new THREE.MeshStandardMaterial({ color: 0x527352 }));
+      plant.position.set(-2.5, 0.58, 2.4);
+      furnitureGroup.add(pot, plant);
+
+      scene.add(furnitureGroup);
+
+      // ================= 선반 시스템 =================
+      const shelves = [];
+      const SHELF_CAPACITY = 4;
+      let albumCount = 0;
+
+      function getOrCreateShelfForAlbum() {
+        const shelfIndex = Math.floor(albumCount / SHELF_CAPACITY);
+        if (!shelves[shelfIndex]) {
+          const shelfY = 2.2 + (shelfIndex * 0.5);
+          const newShelf = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.08, 0.42), new THREE.MeshStandardMaterial({ color: 0x5e4a38 }));
+          newShelf.position.set(1.5, shelfY, -2.85);
+          newShelf.castShadow = true;
+          scene.add(newShelf);
+          shelves.push(newShelf);
+        }
+        const shelf = shelves[shelfIndex];
+        const slotInShelf = albumCount % SHELF_CAPACITY;
+        const xPos = 0.78 + (slotInShelf * 0.46);
+        const yPos = shelf.position.y + 0.22;
+        albumCount++;
+        return { x: xPos, y: yPos, z: -2.8 };
+      }
+
+      // ================= 굿즈 데이터 및 드래그 이동 시스템 =================
+      const collections = [];
+      const draggableObjects = [];
+      const textureLoader = new THREE.TextureLoader();
+      const defaultTextureUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80';
+      let currentFilter = 'all';
+
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let selectedItem = null;
+      let isDraggingGoods = false;
+      const dragPlane = new THREE.Plane();
+      const dragOffset = new THREE.Vector3();
+      const dragIntersection = new THREE.Vector3();
+
+      function selectGoods(item) {
+        selectedItem = item;
+        const toolbar = document.getElementById('selected-toolbar');
+        const label = document.getElementById('selected-item-label');
+        if (toolbar && label) {
+          label.innerText = `선택됨: [${item.artist}] ${item.name}`;
+          toolbar.classList.add('active');
+        }
+      }
+
+      window.deselectGoods = function() {
+        selectedItem = null;
+        const toolbar = document.getElementById('selected-toolbar');
+        if (toolbar) toolbar.classList.remove('active');
+      };
+
+      window.nudgeSelected = function(dx, dy, dz) {
+        if (!selectedItem || !selectedItem.mesh) return;
+        selectedItem.mesh.position.x += dx;
+        selectedItem.mesh.position.y += dy;
+        selectedItem.mesh.position.z += dz;
+      };
+
+      renderer.domElement.addEventListener('pointerdown', (e) => {
+        if (isSpacePressed || e.button !== 0) return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(draggableObjects, true);
+        if (intersects.length > 0) {
+          let targetObj = intersects[0].object;
+          while (targetObj.parent && !targetObj.userData.goodsId) {
+            targetObj = targetObj.parent;
+          }
+
+          if (targetObj.userData.goodsId) {
+            const foundItem = collections.find(c => c.id === targetObj.userData.goodsId);
+            if (foundItem) {
+              selectGoods(foundItem);
+              isDraggingGoods = true;
+              controls.enabled = false;
+              document.body.classList.add('dragging-goods');
+
+              if (foundItem.category === 'poster' || foundItem.category === 'album') {
+                dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), targetObj.position);
+              } else {
+                dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), targetObj.position);
+              }
+
+              if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+                dragOffset.copy(dragIntersection).sub(targetObj.position);
+              }
+            }
+          }
+        }
+      });
+
+      renderer.domElement.addEventListener('pointermove', (e) => {
+        if (!isDraggingGoods || !selectedItem) return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+          const newPos = dragIntersection.sub(dragOffset);
+          selectedItem.mesh.position.x = THREE.MathUtils.clamp(newPos.x, -2.7, 2.7);
+          selectedItem.mesh.position.y = THREE.MathUtils.clamp(newPos.y, 0.2, 3.8);
+          selectedItem.mesh.position.z = THREE.MathUtils.clamp(newPos.z, -2.9, 2.7);
+        }
+      });
+
+      renderer.domElement.addEventListener('pointerup', () => {
+        if (isDraggingGoods) {
+          isDraggingGoods = false;
+          controls.enabled = true;
+          document.body.classList.remove('dragging-goods');
+        }
+      });
+
+      window.openRegisterModal = function() {
+        document.getElementById('edit-item-id').value = '';
+        document.getElementById('modal-title').innerText = '실물 굿즈 AI SYNK';
+        document.getElementById('btn-save-goods').innerText = 'AI 분석 & 방에 반영';
+        document.getElementById('artist-name').value = '';
+        document.getElementById('item-name').value = '';
+        document.getElementById('item-image-file').value = '';
+        updateFormSubTypes();
+        toggleModal('sync-modal');
+      };
+
+      window.openEditModal = function(id) {
+        const item = collections.find(c => c.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-item-id').value = item.id;
+        document.getElementById('modal-title').innerText = '굿즈 정보 수정';
+        document.getElementById('btn-save-goods').innerText = '수정사항 저장';
+        document.getElementById('artist-name').value = item.artist;
+        document.getElementById('item-category').value = item.category;
+        updateFormSubTypes();
+        document.getElementById('item-shape-type').value = item.shapeType || 'png_cutout';
+        document.getElementById('item-name').value = item.name;
+        document.getElementById('item-image-file').value = '';
+        toggleModal('sync-modal');
+      };
+
+      window.saveGoods = function() {
+        const editId = document.getElementById('edit-item-id').value;
+        const artist = (document.getElementById('artist-name').value || 'Unknown').trim();
+        const category = document.getElementById('item-category').value;
+        const shapeType = document.getElementById('item-shape-type').value;
+        const name = (document.getElementById('item-name').value || '소장 굿즈').trim();
+        const fileInput = document.getElementById('item-image-file');
+
+        if (fileInput.files && fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            processSave(editId, artist, category, shapeType, name, e.target.result);
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        } else {
+          const existing = collections.find(c => c.id === editId);
+          const imageUrl = existing ? existing.imageUrl : defaultTextureUrl;
+          processSave(editId, artist, category, shapeType, name, imageUrl);
+        }
+      };
+
+      function processSave(editId, artist, category, shapeType, name, imageUrl) {
+        if (editId) {
+          const item = collections.find(c => c.id === editId);
+          if (item) {
+            item.artist = artist;
+            item.name = name;
+            if (item.category !== category || item.shapeType !== shapeType || item.imageUrl !== imageUrl) {
+              const oldPos = item.mesh.position.clone();
+              scene.remove(item.mesh);
+              const idx = draggableObjects.indexOf(item.mesh);
+              if (idx > -1) draggableObjects.splice(idx, 1);
+
+              item.category = category;
+              item.shapeType = shapeType;
+              item.imageUrl = imageUrl;
+              item.mesh = createGoodsMesh(item.id, category, shapeType, imageUrl, oldPos);
+            }
+          }
+        } else {
+          const newItemId = 'goods_' + Date.now();
+          const mesh = createGoodsMesh(newItemId, category, shapeType, imageUrl, null);
+          const newItem = { id: newItemId, artist, category, shapeType, name, imageUrl, mesh };
+          collections.push(newItem);
+          selectGoods(newItem);
+        }
+
+        updateFilterCounts();
+        updateCollectionUI();
+        toggleModal('sync-modal');
+      }
+
+      function createGoodsMesh(goodsId, category, shapeType, imageUrl, customPos) {
+        let meshGroup = new THREE.Group();
+        meshGroup.userData.goodsId = goodsId;
+        const texture = textureLoader.load(imageUrl);
+
+        const pngMat = new THREE.MeshStandardMaterial({
+          map: texture,
+          transparent: true,
+          alphaTest: 0.15,
+          side: THREE.DoubleSide
+        });
+
+        if (category === 'album') {
+          const pos = customPos || getOrCreateShelfForAlbum();
+
+          if (shapeType === 'standard') {
+            const albumGeo = new THREE.BoxGeometry(0.32, 0.35, 0.06);
+            const coverMat = new THREE.MeshStandardMaterial({ map: texture });
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const album = new THREE.Mesh(albumGeo, [sideMat, sideMat, sideMat, sideMat, coverMat, coverMat]);
+            meshGroup.add(album);
+          } else {
+            const planeGeo = new THREE.PlaneGeometry(0.35, 0.35);
+            const plane = new THREE.Mesh(planeGeo, pngMat);
+            meshGroup.add(plane);
+
+            if (shapeType === 'keyring') {
+              const ringGeo = new THREE.TorusGeometry(0.05, 0.008, 8, 16);
+              const ringMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.9 });
+              const ring = new THREE.Mesh(ringGeo, ringMat);
+              ring.position.set(0, 0.2, 0);
+              meshGroup.add(ring);
+            }
+          }
+          meshGroup.position.set(pos.x, pos.y, pos.z);
+
+        } else if (category === 'figure') {
+          const planeGeo = new THREE.PlaneGeometry(0.35, 0.45);
+          const figurePlane = new THREE.Mesh(planeGeo, pngMat);
+          meshGroup.add(figurePlane);
+
+          if (shapeType === 'keyring') {
+            const ringGeo = new THREE.TorusGeometry(0.06, 0.01, 8, 16);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.9 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.set(0, 0.25, 0);
+            meshGroup.add(ring);
+          }
+
+          if (customPos) {
+            meshGroup.position.copy(customPos);
+          } else {
+            meshGroup.position.set(0.8 + Math.random() * 1.2, 1.28, -2.1);
+          }
+
+        } else if (category === 'poster') {
+          const posterGeo = new THREE.PlaneGeometry(0.75, 1.05);
+          meshGroup.add(new THREE.Mesh(posterGeo, pngMat));
+          if (customPos) {
+            meshGroup.position.copy(customPos);
+          } else {
+            meshGroup.position.set(Math.random() * 2 - 1, 2.6, -2.94);
+          }
+
+        } else {
+          const cardGeo = new THREE.BoxGeometry(0.18, 0.26, 0.01);
+          const cardMat = new THREE.MeshStandardMaterial({ map: texture });
+          const card = new THREE.Mesh(cardGeo, cardMat);
+          card.rotation.x = -Math.PI / 3;
+          meshGroup.add(card);
+          if (customPos) {
+            meshGroup.position.copy(customPos);
+          } else {
+            meshGroup.position.set(-1.7 + (Math.random() * 0.8 - 0.4), 0.64, -1.6 + (Math.random() * 0.8 - 0.4));
+          }
+        }
+
+        scene.add(meshGroup);
+        draggableObjects.push(meshGroup);
+        return meshGroup;
+      }
+
+      function updateFilterCounts() {
+        const total = collections.length;
+        const uniqueArtists = new Set(collections.map(c => c.artist)).size;
+        const albums = collections.filter(c => c.category === 'album').length;
+        const posters = collections.filter(c => c.category === 'poster').length;
+        const figures = collections.filter(c => c.category === 'figure').length;
+        const photocards = collections.filter(c => c.category === 'photocard').length;
+
+        const tabs = document.querySelectorAll('#filter-tabs .filter-btn');
+        tabs.forEach(btn => {
+          const cat = btn.getAttribute('data-cat');
+          if (cat === 'all') btn.innerText = `전체 (${total})`;
+          else if (cat === 'artist') btn.innerText = `🎤 아티스트 (${uniqueArtists})`;
+          else if (cat === 'album') btn.innerText = `💿 앨범 (${albums})`;
+          else if (cat === 'poster') btn.innerText = `🖼️ 포스터 (${posters})`;
+          else if (cat === 'figure') btn.innerText = `🧸 인형·키링 (${figures})`;
+          else if (cat === 'photocard') btn.innerText = `🃏 포토카드 (${photocards})`;
+        });
+      }
+
+      window.setFilter = function(category, btnEl) {
+        currentFilter = category;
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        btnEl.classList.add('active');
+        updateCollectionUI();
+      };
+
+      function createCardHTML(item) {
+        return `
+          <div class="item-card">
+            <img src="${item.imageUrl}" class="item-card-thumb" alt="goods" />
+            <div class="item-card-info">
+              <div style="font-size: 0.75rem; color: var(--accent-purple); font-weight: 700;">${item.artist}</div>
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${item.name}</div>
+              <span style="font-size: 0.7rem; color: var(--text-sub);">${item.category}</span>
+            </div>
+            <button type="button" class="btn-edit-small" onclick="openEditModal('${item.id}')">✏️ 수정</button>
+          </div>
+        `;
+      }
+
+      function updateCollectionUI() {
+        const listEl = document.getElementById('collection-list');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+
+        if (collections.length === 0) {
+          listEl.innerHTML = '<p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 10px;">등록된 굿즈가 없습니다.</p>';
+          return;
+        }
+
+        if (currentFilter === 'artist') {
+          const groupedByArtist = {};
+          collections.forEach(item => {
+            if (!groupedByArtist[item.artist]) groupedByArtist[item.artist] = [];
+            groupedByArtist[item.artist].push(item);
+          });
+
+          Object.keys(groupedByArtist).forEach(artistName => {
+            const items = groupedByArtist[artistName];
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'artist-group-header';
+            groupHeader.innerHTML = `<span>🎤 ${artistName}</span><span>총 ${items.length}개</span>`;
+            listEl.appendChild(groupHeader);
+
+            items.forEach(item => {
+              listEl.insertAdjacentHTML('beforeend', createCardHTML(item));
+            });
+          });
+          return;
+        }
+
+        const filteredList = collections.filter(item => {
+          if (currentFilter === 'all') return true;
+          return item.category === currentFilter;
+        });
+
+        if (filteredList.length === 0) {
+          listEl.innerHTML = '<p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 10px;">해당 카테고리의 굿즈가 없습니다.</p>';
+          return;
+        }
+
+        filteredList.forEach(item => {
+          listEl.insertAdjacentHTML('beforeend', createCardHTML(item));
+        });
+      }
+
+      // ================= 애니메이션 루프 (입장 -> 입장 후 문 자동 닫힘 -> 지붕/벽 스마트 시야) =================
+      let doorAngle = 0;
+      const insideCameraPos = new THREE.Vector3(1.6, 2.35, 1.85);
+      const insideTargetPos = new THREE.Vector3(-0.35, 1.35, -0.65);
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // 1단계: 집 바깥에서 문이 안쪽으로 활짝 열림
+        if (window.entryPhase === 'opening') {
+          controls.enabled = false;
+          doorAngle += 0.04;
+          doorPivot.rotation.y = -Math.min(doorAngle, Math.PI * 0.52);
+          camera.position.lerp(new THREE.Vector3(3.6, 1.75, 1.6), 0.06);
+          controls.target.lerp(new THREE.Vector3(0.5, 1.4, 0.3), 0.06);
+
+          if (doorAngle >= Math.PI * 0.48) {
+            window.entryPhase = 'entering';
+          }
+        }
+        // 2단계: 열린 문틀을 통과해 방 중앙 시점으로 진입
+        else if (window.entryPhase === 'entering') {
+          camera.position.lerp(insideCameraPos, 0.055);
+          controls.target.lerp(insideTargetPos, 0.055);
+
+          if (camera.position.distanceTo(insideCameraPos) < 0.08) {
+            camera.position.copy(insideCameraPos);
+            controls.target.copy(insideTargetPos);
+            window.entryPhase = 'closing'; // 방 안에 들어온 뒤 문 닫힘 단계로 전환
+          }
+        }
+        // 3단계: 방 안에 들어온 다음 문이 다시 닫힘
+        else if (window.entryPhase === 'closing') {
+          doorAngle -= 0.045;
+          if (doorAngle <= 0) {
+            doorAngle = 0;
+            doorPivot.rotation.y = 0;
+            window.entryPhase = 'done';
+            controls.enabled = true; // 문이 완전히 닫힌 후 360도 자유 조작 활성화
+          } else {
+            doorPivot.rotation.y = -doorAngle;
+          }
+        }
+
+        // 4단계: 4면 벽 및 지붕/천장 스마트 시야 처리
+        if (window.entryPhase === 'done') {
+          wallMatFront.opacity = camera.position.z > 1.6 ? 0.12 : 0.95;
+          wallMatRight.opacity = camera.position.x > 1.8 ? 0.12 : 0.95;
+          // 카메라를 높이 올려 위에서 내려다볼 때만 천장과 지붕을 반투명하게 처리
+          const topOpacity = camera.position.y > 3.6 ? 0.1 : 1.0;
+          ceilingMat.opacity = topOpacity;
+          ceilingLampMat.opacity = topOpacity;
+          roofMat.opacity = topOpacity;
+          gableMat.opacity = topOpacity;
+        } else {
+          wallMatRight.opacity = 1;
+          wallMatFront.opacity = 1;
+          ceilingMat.opacity = 1;
+          ceilingLampMat.opacity = 1;
+          roofMat.opacity = 1;
+          gableMat.opacity = 1;
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+  </script>
+</body>
+</html>
